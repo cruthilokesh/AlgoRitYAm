@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .pulse-animation {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Status Card -->
+    <div class="lg:col-span-1">
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Current Status</h3>
+            <div class="text-center">
+                <div class="inline-block p-4 rounded-full {% if active_session %}bg-green-100{% else %}bg-gray-100{% endif %}">
+                    <i class="ri-user-line text-4xl {% if active_session %}text-green-600{% else %}text-gray-600{% endif %}"></i>
+                </div>
+                <p class="text-2xl font-bold mt-2">{{ total_hours_today }} hours</p>
+                <p class="text-gray-600">Today's Total</p>
+                
+                {% if active_session %}
+                <div class="mt-4 p-3 bg-green-50 rounded-lg">
+                    <p class="text-green-600 font-semibold">● Active Session</p>
+                    <p class="text-sm text-gray-600">Since: {{ active_session.login_time.strftime('%H:%M:%S') }}</p>
+                </div>
+                {% else %}
+                <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <p class="text-gray-600">● No Active Session</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mt-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
+            <div class="space-y-3">
+                <button id="checkInBtn" {% if active_session %}disabled{% endif %}
+                        class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="ri-login-circle-line"></i> Check In
+                </button>
+                <button id="checkOutBtn" {% if not active_session %}disabled{% endif %}
+                        class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="ri-logout-circle-line"></i> Check Out
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Today's Sessions -->
+    <div class="lg:col-span-2">
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Today's Sessions</h3>
+            <div class="space-y-3">
+                {% for session in today_sessions %}
+                <div class="border-l-4 {% if session.status == 'completed' %}border-green-500{% else %}border-yellow-500{% endif %} p-3 bg-gray-50 rounded">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-semibold">{{ session.login_time.strftime('%H:%M:%S') }} - {% if session.logout_time %}{{ session.logout_time.strftime('%H:%M:%S') }}{% else %}Active{% endif %}</p>
+                            <p class="text-sm text-gray-600">{{ session.total_hours }} hours</p>
+                        </div>
+                        <span class="px-2 py-1 rounded-full text-xs {% if session.status == 'completed' %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ session.status }}
+                        </span>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-4">No sessions today</p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Weekly Summary -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mt-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Weekly Summary</h3>
+            <div class="space-y-2">
+                {% for day, hours in weekly_hours.items() %}
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span>{{ day }}</span>
+                        <span>{{ hours }}h</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        {% set width = (hours / 8 * 100) if hours <= 8 else 100 %}
+                        <div class="bg-indigo-600 rounded-full h-2" style="width: {{ width }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let watchId = null;
+
+function getLocation() {
+    if ("geolocation" in navigator) {
+        watchId = navigator.geolocation.watchPosition(
+            function(position) {
+                checkLocation(position.coords.latitude, position.coords.longitude);
+            },
+            function(error) {
+                console.error("Geolocation error:", error);
+                if (error.code === 1) {
+                    alert("Please allow location access to use attendance features.");
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    } else {
+        alert("Geolocation is not supported by your browser");
+    }
+}
+
+function checkLocation(latitude, longitude) {
+    fetch('/api/check_location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude: latitude, longitude: longitude })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.auto_logged_out) {
+            alert(data.message);
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error("Error checking location:", error);
+    });
+}
+
+document.getElementById('checkInBtn')?.addEventListener('click', function() {
+    navigator.geolocation.getCurrentPosition(function(position) {
+        fetch('/api/check_in', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            alert("Error checking in. Please try again.");
+        });
+    }, function(error) {
+        alert("Unable to get your location. Please enable location services.");
+    });
+});
+
+document.getElementById('checkOutBtn')?.addEventListener('click', function() {
+    navigator.geolocation.getCurrentPosition(function(position) {
+        fetch('/api/check_out', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            alert("Error checking out. Please try again.");
+        });
+    }, function(error) {
+        alert("Unable to get your location. Please enable location services.");
+    });
+});
+
+// Start location tracking
+getLocation();
+</script>
+{% endblock %}

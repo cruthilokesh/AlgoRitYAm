@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-lg p-6">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Admin Dashboard</h2>
+    <p class="text-gray-600">Welcome, {{ current_user.full_name }}! You have full system access.</p>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div class="bg-indigo-50 p-4 rounded-lg">
+            <i class="ri-map-pin-line text-2xl text-indigo-600"></i>
+            <h3 class="font-semibold mt-2">Geofence Management</h3>
+            <p class="text-sm text-gray-600">Configure campus boundaries</p>
+            <button onclick="showGeofenceConfig()" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800">
+                Configure →
+            </button>
+        </div>
+        
+        <div class="bg-green-50 p-4 rounded-lg">
+            <i class="ri-user-add-line text-2xl text-green-600"></i>
+            <h3 class="font-semibold mt-2">User Management</h3>
+            <p class="text-sm text-gray-600">Add/Edit/Remove employees</p>
+            <button onclick="showUserManagement()" class="mt-2 text-sm text-green-600 hover:text-green-800">
+                Manage →
+            </button>
+        </div>
+        
+        <div class="bg-purple-50 p-4 rounded-lg">
+            <i class="ri-file-copy-line text-2xl text-purple-600"></i>
+            <h3 class="font-semibold mt-2">Reports</h3>
+            <p class="text-sm text-gray-600">Generate attendance reports</p>
+            <button onclick="showReports()" class="mt-2 text-sm text-purple-600 hover:text-purple-800">
+                Generate →
+            </button>
+        </div>
+    </div>
+    
+    <div class="mt-8 flex gap-4">
+        <a href="{{ url_for('manager_dashboard') }}" class="inline-block bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">
+            View Manager Dashboard
+        </a>
+        <button onclick="exportReport()" class="inline-block bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+            Export Monthly Report
+        </button>
+    </div>
+</div>
+
+<!-- Geofence Config Modal -->
+<div id="geofenceModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+        <div class="border-b p-4 flex justify-between items-center">
+            <h3 class="text-xl font-semibold">Geofence Configuration</h3>
+            <button onclick="closeModal('geofenceModal')" class="text-gray-500 hover:text-gray-800">
+                <i class="ri-close-line text-2xl"></i>
+            </button>
+        </div>
+        <div class="p-4">
+            <form id="geofenceForm">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Latitude</label>
+                    <input type="number" step="any" id="latitude" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Longitude</label>
+                    <input type="number" step="any" id="longitude" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Radius (meters)</label>
+                    <input type="number" id="radius" value="500" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">
+                    Save Configuration
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showGeofenceConfig() {
+    document.getElementById('geofenceModal').classList.remove('hidden');
+    document.getElementById('geofenceModal').classList.add('flex');
+}
+
+function showUserManagement() {
+    alert('User management feature coming soon!');
+}
+
+function showReports() {
+    window.location.href = '/manager/dashboard';
+}
+
+function exportReport() {
+    alert('Export functionality will be implemented with CSV/PDF export');
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+document.getElementById('geofenceForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const latitude = parseFloat(document.getElementById('latitude').value);
+    const longitude = parseFloat(document.getElementById('longitude').value);
+    const radius = parseFloat(document.getElementById('radius').value);
+    
+    fetch('/api/update_geofence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude, longitude, radius })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Geofence updated successfully!');
+            closeModal('geofenceModal');
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error updating geofence');
+    });
+});
+</script>
+{% endblock %}

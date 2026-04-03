@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Manager Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <!-- Stats Cards -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">Total Employees</p>
+                <p class="text-2xl font-bold">{{ total_employees }}</p>
+            </div>
+            <i class="ri-team-line text-3xl text-indigo-600"></i>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">Present Today</p>
+                <p class="text-2xl font-bold">{{ total_present }}</p>
+            </div>
+            <i class="ri-user-smile-line text-3xl text-green-600"></i>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">Active Now</p>
+                <p class="text-2xl font-bold">{{ active_employees|length }}</p>
+            </div>
+            <i class="ri-user-location-line text-3xl text-blue-600"></i>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">Attendance Rate</p>
+                <p class="text-2xl font-bold">{{ (total_present / total_employees * 100)|round(1) if total_employees > 0 else 0 }}%</p>
+            </div>
+            <i class="ri-percent-line text-3xl text-purple-600"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Active Employees -->
+<div class="bg-white rounded-xl shadow-lg p-6 mt-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Active Employees</h3>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 text-left">Employee</th>
+                    <th class="px-4 py-2 text-left">Department</th>
+                    <th class="px-4 py-2 text-left">Check In Time</th>
+                    <th class="px-4 py-2 text-left">Duration</th>
+                    <th class="px-4 py-2 text-left">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in active_employees %}
+                <tr class="border-t">
+                    <td class="px-4 py-2">{{ emp.user.full_name }}</td>
+                    <td class="px-4 py-2">{{ emp.user.department or 'N/A' }}</td>
+                    <td class="px-4 py-2">{{ emp.session.login_time.strftime('%H:%M:%S') }}</td>
+                    <td class="px-4 py-2">{{ emp.current_duration }}h</td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Active</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-gray-500">No active employees</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- All Employees -->
+<div class="bg-white rounded-xl shadow-lg p-6 mt-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">All Employees</h3>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 text-left">Employee ID</th>
+                    <th class="px-4 py-2 text-left">Name</th>
+                    <th class="px-4 py-2 text-left">Department</th>
+                    <th class="px-4 py
